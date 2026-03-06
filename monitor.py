@@ -260,33 +260,37 @@ def get_recent_videos(channel_id, hours=24):
 
 def get_video_statistics(video_id):
     """
-    获取单个视频的详细统计信息（播放量、点赞数）
-    因为Search API不返回这些数据，需要额外调用Videos API
+    获取单个视频的详细信息：统计数据（播放量、点赞数）+ 完整描述
+    Search API返回的description是截断的预览，只有约200字符；
+    Videos API的snippet字段才包含完整描述，所以这里同时请求 snippet 和 statistics
+    一次调用拿回所有需要的数据，不增加额外配额消耗
     """
     url = "https://www.googleapis.com/youtube/v3/videos"
 
     params = {
         "key": YOUTUBE_API_KEY,
         "id": video_id,
-        "part": "statistics"  # 只需要统计信息
+        "part": "snippet,statistics"  # 同时获取完整描述和统计信息
     }
 
     response = requests.get(url, params=params)
 
     if response.status_code != 200:
-        return {"views": 0, "likes": 0}
+        return {"views": 0, "likes": 0, "full_description": ""}
 
     data = response.json()
     items = data.get("items", [])
 
     if not items:
-        return {"views": 0, "likes": 0}
+        return {"views": 0, "likes": 0, "full_description": ""}
 
     stats = items[0].get("statistics", {})
+    snippet = items[0].get("snippet", {})
 
     return {
         "views": int(stats.get("viewCount", 0)),
-        "likes": int(stats.get("likeCount", 0))
+        "likes": int(stats.get("likeCount", 0)),
+        "full_description": snippet.get("description", "")  # 完整描述，不截断
     }
 
 
@@ -391,11 +395,13 @@ def main():
                 print(f"  ⏭️ 视频已存在，跳过: {video['title'][:30]}...")
                 continue
 
-            # 获取视频的统计信息
+            # 获取视频的统计信息 + 完整描述（Videos API的snippet字段）
+            # 注意：Search API返回的description是截断版，这里用Videos API拿完整版
             stats = get_video_statistics(video["video_id"])
 
-            # 清理描述（去掉链接、广告等）
-            cleaned_desc = clean_description(video["description"])
+            # 用Videos API返回的完整描述，而不是Search API的截断预览
+            full_desc = stats.get("full_description") or video["description"]
+            cleaned_desc = clean_description(full_desc)
 
             # 组装完整的视频信息
             video_info = {
