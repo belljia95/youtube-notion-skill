@@ -2,6 +2,8 @@
 
 用 Claude Code 自动监控 YouTube 频道新视频，并同步到 Notion 选题追踪数据库。输入 `/youtube-notion` 一键运行。
 
+**[查看架构可视化网站](https://belljia95.github.io/youtube-notion-skill/)** — 交互式图解三层架构与服务对话流程
+
 ---
 
 ## 整体流程
