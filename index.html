@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YouTube Notion Monitor 全景</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", sans-serif;
+      background: #faf9f7;
+      color: #1a1a1a;
+    }
+
+    /* ── 导航 ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 48px; height: 56px;
+      background: #faf9f7; border-bottom: 1px solid #e8e4de;
+    }
+    .nav-logo { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
+    .nav-logo span { color: #c0392b; }
+    .nav-links { display: flex; gap: 32px; }
+    .nav-links a {
+      font-size: 14px; color: #555; text-decoration: none;
+      transition: color .2s;
+    }
+    .nav-links a:hover { color: #1a1a1a; }
+
+    /* ── 区块通用 ── */
+    section { padding: 80px 48px; max-width: 1100px; margin: 0 auto; }
+    .section-tag {
+      font-size: 11px; font-weight: 700; letter-spacing: 1.5px;
+      text-transform: uppercase; color: #c0392b; margin-bottom: 12px;
+    }
+    h2 { font-size: 36px; font-weight: 700; letter-spacing: -1px; line-height: 1.2; margin-bottom: 16px; }
+    .lead { font-size: 16px; color: #555; line-height: 1.8; max-width: 600px; margin-bottom: 48px; }
+
+    /* ── 架构层 ── */
+    .arch-layer { border-radius: 12px; padding: 28px; margin-bottom: 20px; }
+    .layer-trigger { background: #fff0f0; border: 1px solid #f5c6c6; }
+    .layer-logic   { background: #eef4ff; border: 1px solid #c6d8f5; }
+    .layer-service { background: #f0fff4; border: 1px solid #c6e8d1; }
+
+    .layer-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 1.2px;
+      text-transform: uppercase; margin-bottom: 18px;
+    }
+    .layer-trigger .layer-label { color: #c0392b; }
+    .layer-logic   .layer-label { color: #2e6bc1; }
+    .layer-service .layer-label { color: #1e8449; }
+
+    .cards { display: flex; gap: 14px; flex-wrap: wrap; }
+    .card {
+      background: #fff; border: 1.5px solid #e8e4de;
+      border-radius: 10px; padding: 20px 22px;
+      flex: 1; min-width: 180px; cursor: pointer;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .card:hover { border-color: #999; box-shadow: 0 4px 16px rgba(0,0,0,.08); }
+    .card.active { border-color: #c0392b; box-shadow: 0 4px 16px rgba(192,57,43,.15); }
+    .card-icon { font-size: 22px; margin-bottom: 10px; }
+    .card-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .card-desc { font-size: 13px; color: #777; line-height: 1.5; }
+
+    /* 详情弹出 */
+    .detail-panel {
+      display: none; margin-top: 14px;
+      background: #fff; border: 1.5px solid #c0392b;
+      border-radius: 10px; padding: 22px 26px;
+    }
+    .detail-panel.open { display: block; }
+    .detail-panel h4 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+    .detail-panel p { font-size: 14px; color: #555; line-height: 1.7; }
+    .detail-panel code {
+      background: #f5f5f5; padding: 2px 6px;
+      border-radius: 4px; font-size: 13px; font-family: monospace;
+    }
+
+    /* ── 分隔箭头 ── */
+    .layer-arrow {
+      text-align: center; font-size: 20px; color: #bbb;
+      margin: -8px 0; line-height: 1;
+    }
+
+    /* ── 群聊区 ── */
+    .chat-scenario { margin-bottom: 40px; }
+    .scenario-title {
+      display: flex; align-items: center; gap: 12px;
+      font-size: 16px; font-weight: 600; margin-bottom: 20px;
+    }
+    .scenario-num {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: #c0392b; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; flex-shrink: 0;
+    }
+
+    .chat-window {
+      background: #fff; border: 1px solid #e8e4de;
+      border-radius: 12px; padding: 24px 28px;
+      display: flex; flex-direction: column; gap: 16px;
+    }
+
+    .msg { display: flex; align-items: flex-start; gap: 12px; }
+    .msg.right { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; flex-shrink: 0; color: #fff;
+    }
+    .av-you      { background: #1a1a1a; }
+    .av-claude   { background: #c0392b; }
+    .av-monitor  { background: #2e6bc1; }
+    .av-youtube  { background: #e63; }
+    .av-notion   { background: #1e8449; }
+
+    .bubble {
+      max-width: 72%; padding: 12px 16px;
+      border-radius: 12px; font-size: 14px; line-height: 1.6;
+    }
+    .bubble-left  { background: #f2f1ef; border-radius: 4px 12px 12px 12px; }
+    .bubble-right { background: #c0392b; color: #fff; border-radius: 12px 4px 12px 12px; }
+
+    .sender-name {
+      font-size: 11px; font-weight: 600; color: #999;
+      margin-bottom: 4px; letter-spacing: 0.3px;
+    }
+    .msg.right .sender-name { text-align: right; }
+
+    /* ── SaaS 工具箱 ── */
+    .tool-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+    .tool-card {
+      background: #fff; border: 1px solid #e8e4de;
+      border-radius: 12px; padding: 28px;
+    }
+    .tool-card-header { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+    .tool-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+    .tool-name { font-size: 18px; font-weight: 700; }
+    .tool-desc { font-size: 14px; color: #555; line-height: 1.7; margin-bottom: 16px; }
+    .tool-tag {
+      display: inline-block; font-size: 11px; font-weight: 600;
+      padding: 4px 10px; border-radius: 20px; margin-right: 6px; margin-bottom: 6px;
+    }
+    .tag-free { background: #e8f5e9; color: #1e8449; }
+    .tag-quota { background: #fff3e0; color: #e65100; }
+
+    footer {
+      text-align: center; padding: 40px;
+      font-size: 13px; color: #aaa; border-top: 1px solid #e8e4de;
+    }
+    footer a { color: #aaa; }
+  </style>
+</head>
+<body>
+
+<!-- 导航 -->
+<nav>
+  <div class="nav-logo">youtube-notion <span>全景</span></div>
+  <div class="nav-links">
+    <a href="#arch">架构总览</a>
+    <a href="#chat">服务对话</a>
+    <a href="#tools">工具箱</a>
+  </div>
+</nav>
+
+<!-- ── 架构总览 ── -->
+<section id="arch">
+  <div class="section-tag">架构总览</div>
+  <h2>三层结构，一键运行</h2>
+  <p class="lead">把这个脚本想象成三层结构：最上面是你触发命令的入口；中间是统筹全局的主程序；最底下是两个外部服务，负责真正干活。点击任意模块查看详细说明。</p>
+
+  <!-- 触发层 -->
+  <div class="arch-layer layer-trigger">
+    <div class="layer-label">触发层 — 你的操作入口</div>
+    <div class="cards">
+      <div class="card" onclick="toggleDetail('d-claudecode')">
+        <div class="card-icon">💬</div>
+        <div class="card-title">Claude Code</div>
+        <div class="card-desc">输入 /youtube-notion 触发一切</div>
+      </div>
+      <div class="card" onclick="toggleDetail('d-skill')">
+        <div class="card-icon">📄</div>
+        <div class="card-title">SKILL.md</div>
+        <div class="card-desc">告诉 Claude 该跑哪个脚本、怎么汇报</div>
+      </div>
+    </div>
+    <div class="detail-panel" id="d-claudecode">
+      <h4>Claude Code — 指令入口</h4>
+      <p>你在终端输入 <code>/youtube-notion</code>，Claude Code 识别到这是一个已安装的 Skill，加载 SKILL.md 里的指令，然后自动执行后续所有步骤，最后用中文把结果汇报给你。你不需要知道任何技术细节。</p>
+    </div>
+    <div class="detail-panel" id="d-skill">
+      <h4>SKILL.md — 技能说明书</h4>
+      <p>存放在 <code>~/.claude/skills/youtube-notion/</code>，相当于一份操作手册。它告诉 Claude：运行哪个 Python 脚本、脚本在哪里、输出结果后怎么整理成可读的中文摘要。</p>
+    </div>
+  </div>
+
+  <div class="layer-arrow">↓</div>
+
+  <!-- 逻辑层 -->
+  <div class="arch-layer layer-logic">
+    <div class="layer-label">逻辑层 — 总指挥</div>
+    <div class="cards">
+      <div class="card" onclick="toggleDetail('d-monitor')">
+        <div class="card-icon">⚙️</div>
+        <div class="card-title">monitor.py</div>
+        <div class="card-desc">主程序，负责调度所有 API 调用</div>
+      </div>
+      <div class="card" onclick="toggleDetail('d-config')">
+        <div class="card-icon">🔑</div>
+        <div class="card-title">config.py</div>
+        <div class="card-desc">存放 API 密钥，本地私有不上传</div>
+      </div>
+    </div>
+    <div class="detail-panel" id="d-monitor">
+      <h4>monitor.py — 主程序</h4>
+      <p>整个脚本的大脑。执行顺序：① 读取 Notion 博主列表 → ② 对每个频道查询 YouTube 最近 7 天新视频 → ③ 检查视频是否已存在（去重）→ ④ 获取完整描述 + 播放量 + 点赞数 → ⑤ 写入 Notion 选题数据库。</p>
+    </div>
+    <div class="detail-panel" id="d-config">
+      <h4>config.py — 密钥文件</h4>
+      <p>存放 YouTube API Key 和 Notion Integration Secret。这个文件被 <code>.gitignore</code> 排除，永远不会上传到 GitHub，只存在你自己的电脑上。其他人克隆仓库后需要自己创建这个文件。</p>
+    </div>
+  </div>
+
+  <div class="layer-arrow">↓</div>
+
+  <!-- 服务层 -->
+  <div class="arch-layer layer-service">
+    <div class="layer-label">服务层 — 外部 API</div>
+    <div class="cards">
+      <div class="card" onclick="toggleDetail('d-youtube')">
+        <div class="card-icon">▶️</div>
+        <div class="card-title">YouTube Data API</div>
+        <div class="card-desc">提供频道视频列表、完整描述、播放量</div>
+      </div>
+      <div class="card" onclick="toggleDetail('d-notion')">
+        <div class="card-icon">📋</div>
+        <div class="card-title">Notion API</div>
+        <div class="card-desc">读取博主列表，写入选题追踪数据库</div>
+      </div>
+    </div>
+    <div class="detail-panel" id="d-youtube">
+      <h4>YouTube Data API v3</h4>
+      <p>脚本调用两个端点：<code>search</code>（获取频道近期视频列表）和 <code>videos</code>（获取完整描述 + 统计数据）。每天免费配额 10,000 单位，监控 4 个频道约消耗 800 单位，完全够用。</p>
+    </div>
+    <div class="detail-panel" id="d-notion">
+      <h4>Notion API</h4>
+      <p>脚本读取「YouTube博主」数据库获取要监控的频道，然后把新视频写入「YouTube博主选题追踪」数据库。写入字段包括：标题、链接、博主、描述、播放量、点赞数、发布日期。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ── 服务对话 ── -->
+<section id="chat" style="background:#f5f3f0; max-width:100%; padding: 80px 0;">
+  <div style="max-width:1100px; margin:0 auto; padding: 0 48px;">
+    <div class="section-tag">Behind the Scenes</div>
+    <h2>服务之间怎么「对话」</h2>
+    <p class="lead">把每个模块想象成一个各司其职的同事。你输入一条指令，它们就像在工作群里传话一样互相配合。下面是一次完整同步背后发生的事。</p>
+
+    <div class="chat-scenario">
+      <div class="scenario-title">
+        <div class="scenario-num">1</div>
+        你输入 /youtube-notion
+      </div>
+      <div class="chat-window">
+
+        <div class="msg right">
+          <div>
+            <div class="sender-name">你</div>
+            <div class="bubble bubble-right">帮我同步一下 YouTube 新视频！</div>
+          </div>
+          <div class="avatar av-you">你</div>
+        </div>
+
+        <div class="msg">
+          <div class="avatar av-claude">CC</div>
+          <div>
+            <div class="sender-name">Claude Code</div>
+            <div class="bubble bubble-left">收到，加载 youtube-notion skill，调用 monitor.py，开始执行……</div>
+          </div>
+        </div>
+
+        <div class="msg">
+          <div class="avatar av-monitor">M</div>
+          <div>
+            <div class="sender-name">monitor.py</div>
+            <div class="bubble bubble-left">Notion，把博主数据库里的频道列表给我。</div>
+          </div>
+        </div>
+
+        <div class="msg">
+          <div class="avatar av-notion">N</div>
+          <div>
+            <div class="sender-name">Notion API</div>
+            <div class="bubble bubble-left">找到 4 个频道：Lenny's Podcast、Peter Yang、Jeff Su、课代表立正。</div>
+          </div>
+        </div>
+
+        <div class="msg">
+          <div class="avatar av-monitor">M</div>
+          <div>
+            <div class="sender-name">monitor.py</div>
+            <div class="bubble bubble-left">YouTube，这 4 个频道 7 天内发了什么新视频？</div>
+          </div>
+        </div>
+
+        <div class="msg">
+          <div class="avatar av-youtube">YT</div>
+          <div>
+            <div class="sender-name">YouTube Data API</div>
+            <div class="bubble bubble-left">找到 11 个视频，但 Search API 的描述是截断版，你要完整的吗？</div>
+          </div>
+        </div>
+
+        <div class="msg">
+          <div class="avatar av-monitor">M</div>
+          <div>
+            <div class="sender-name">monitor.py</div>
+            <div class="bubble bubble-left">要！再调用一次 Videos API，拿 snippet + statistics，完整描述 + 播放量 + 点赞数一起给我。</div>
+          </div>
+        </div>
+
+        <div class="msg">
+          <div class="avatar av-youtube">YT</div>
+          <div>
+            <div class="sender-name">YouTube Data API</div>
+            <div class="bubble bubble-left">好的，返回完整数据。</div>
+          </div>
+        </div>
+
+        <div class="msg">
+          <div class="avatar av-monitor">M</div>
+          <div>
+            <div class="sender-name">monitor.py</div>
+            <div class="bubble bubble-left">Notion，先查一下这几个视频 URL 有没有已经在数据库里了？（去重检查）</div>
+          </div>
+        </div>
+
+        <div class="msg">
+          <div class="avatar av-notion">N</div>
+          <div>
+            <div class="sender-name">Notion API</div>
+            <div class="bubble bubble-left">有 4 个已存在，7 个是新的。</div>
+          </div>
+        </div>
+
+        <div class="msg">
+          <div class="avatar av-monitor">M</div>
+          <div>
+            <div class="sender-name">monitor.py</div>
+            <div class="bubble bubble-left">好，把这 7 个新视频写进选题追踪数据库，包含标题、链接、博主、描述、播放量、点赞数、发布日期。</div>
+          </div>
+        </div>
+
+        <div class="msg">
+          <div class="avatar av-notion">N</div>
+          <div>
+            <div class="sender-name">Notion API</div>
+            <div class="bubble bubble-left">写入成功，7 条记录已添加。</div>
+          </div>
+        </div>
+
+        <div class="msg">
+          <div class="avatar av-claude">CC</div>
+          <div>
+            <div class="sender-name">Claude Code</div>
+            <div class="bubble bubble-left">本次同步完成！监控 4 个频道，新增 7 个视频，已全部写入你的 Notion 选题追踪数据库。</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 工具箱 ── -->
+<section id="tools">
+  <div class="section-tag">工具箱</div>
+  <h2>用到的外部服务</h2>
+  <p class="lead">这个脚本只依赖两个外部 API，都有免费额度，日常使用完全不花钱。</p>
+  <div class="tool-cards">
+
+    <div class="tool-card">
+      <div class="tool-card-header">
+        <div class="tool-icon" style="background:#fff0f0; font-size:24px;">▶️</div>
+        <div class="tool-name">YouTube Data API v3</div>
+      </div>
+      <p class="tool-desc">Google 提供的官方接口，用于获取频道视频列表、视频描述、播放量、点赞数等数据。稳定、官方，不需要下载任何软件。</p>
+      <span class="tool-tag tag-free">免费额度：10,000 单位/天</span>
+      <span class="tool-tag tag-quota">本项目消耗：约 800 单位/天（4个频道）</span>
+    </div>
+
+    <div class="tool-card">
+      <div class="tool-card-header">
+        <div class="tool-icon" style="background:#f0fff4; font-size:24px;">📋</div>
+        <div class="tool-name">Notion API</div>
+      </div>
+      <p class="tool-desc">Notion 官方接口，支持读取和写入数据库。通过创建 Internal Integration 获取密钥，可以连接你自己的 Notion 工作区。</p>
+      <span class="tool-tag tag-free">完全免费</span>
+      <span class="tool-tag tag-quota">无请求数量限制（合理使用范围内）</span>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <p>
+    <a href="https://github.com/belljia95/youtube-notion-skill" target="_blank">GitHub 仓库</a>
+    &nbsp;·&nbsp;
+    由 Claude Code 辅助开发
+  </p>
+</footer>
+
+<script>
+  function toggleDetail(id) {
+    const panel = document.getElementById(id);
+    const isOpen = panel.classList.contains('open');
+    // 关闭所有
+    document.querySelectorAll('.detail-panel').forEach(p => p.classList.remove('open'));
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+    // 如果之前是关闭的，打开它
+    if (!isOpen) {
+      panel.classList.add('open');
+      panel.previousElementSibling && panel.previousElementSibling.classList.add('active');
+      // 找到对应的card并高亮
+      const cards = panel.closest('.arch-layer').querySelectorAll('.card');
+      cards.forEach(card => {
+        if (card.getAttribute('onclick').includes(id)) {
+          card.classList.add('active');
+        }
+      });
+    }
+  }
+</script>
+
+</body>
+</html>

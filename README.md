@@ -130,7 +130,11 @@ NOTION_CHANNEL_DATABASE_ID = "博主数据库的 ID"
 NOTION_VIDEO_DATABASE_ID   = "选题追踪数据库的 ID"
 ```
 
-> **数据库 ID 怎么找？** 在 Notion 打开数据库，看浏览器地址栏：`notion.so/你的工作区/这里就是ID?v=...`，复制 `?v=` 前面那段 32 位字符串。
+> **数据库 ID 怎么找？** 在 Notion 打开数据库页面，看浏览器地址栏。URL 格式是：
+> `https://www.notion.so/数据库名称-32位ID`
+> 数据库 ID 就是**最后一个连字符（-）后面那段 32 位字符串**。
+> 例如：`https://www.notion.so/YouTube-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
+> 其中末尾那段 `xxxxxxxx...` 就是数据库 ID，复制它填入 `config.py`。
 
 然后在 Claude Code 里输入 `/youtube-notion`，或者直接运行：
 
