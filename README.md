@@ -8,9 +8,9 @@
 
 ```mermaid
 flowchart LR
-    A["🛠️ 准备工作\n──────────\n① 下载 + 登录 Claude Code\n② 获取 Notion Integration 密钥\n③ 准备 Notion 表格"] --> B["💬 Claude Code\n设计流程"]
-    B --> C["⚙️ Claude Code\n开发脚本"]
-    C --> D["✅ 测试 +\n成功运行！"]
+    A["准备工作<br/>① 下载 + 登录 Claude Code<br/>② 获取 Notion Integration 密钥<br/>③ 准备 Notion 表格"] --> B["Claude Code<br/>设计流程"]
+    B --> C["Claude Code<br/>开发脚本"]
+    C --> D["测试 +<br/>成功运行"]
 
     style A fill:#FFF3CD,stroke:#E6AC00,color:#000
     style B fill:#D6EAF8,stroke:#2E86C1,color:#000
@@ -36,11 +36,12 @@ flowchart LR
 
 Notion Integration 就像一把"钥匙"，让我们的脚本有权限读写你的 Notion 数据库。
 
-1. 打开 [Notion Integrations 页面](https://www.notion.so/my-integrations)
-2. 点击右上角 **+ New integration**
-3. 填写名称（如 `YouTube Monitor`），选择你的工作区，点击 **Submit**
-4. 创建成功后，页面会跳转，找到 **Internal Integration Token**（以 `ntn_` 开头）
-5. 点击 **Show** → **Copy**，保存好这串密钥
+1. 打开 [https://www.notion.so/profile/integrations](https://www.notion.so/profile/integrations)
+2. 在左侧菜单找到 **Build** 分组，点击 **Internal integrations**
+3. 点击 **New integration**
+4. 填写 **Integration name**（如 `YouTube Monitor`），在 **Associated workspace** 下拉菜单选择你的工作区
+5. 点击 **Create**
+6. 创建成功后，页面会显示 **Internal integration secret**，点击 **Show** 查看，再点击 **Copy** 复制保存
 
 > 记得去你的 Notion 数据库页面，点右上角「...」→「连接」，把这个 Integration 连接进去，否则脚本无权访问。
 
