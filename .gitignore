@@ -1,0 +1,9 @@
+# 真实密钥文件，不上传到 GitHub
+config.py
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# Windows
+Thumbs.db
